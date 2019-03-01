@@ -1,7 +1,7 @@
 # Lighthouse Tracker
 
 
-Run Lighthouse against your website, parse the JSON result for only those metrics that are useful, and return the result. From there you can **track whether your key metrics are improving (or not).** 
+Run [Lighthouse](https://developers.google.com/web/tools/lighthouse/) against your website, parse the JSON result for only those metrics that are useful, and return the result. From there you can **track whether your key metrics are improving (or not).** 
 
 ## Motivation
 
@@ -25,37 +25,54 @@ yarn add lighthouse-tracker
 
 ### `lighthouse.run(url)` 
 
-This returns a **Promise** with data in the form below. It's up to you how you want to store/display that data.
+This returns a **Promise** with data in the format below. It's up to you how you want to store/display that data e.g. save to a database, `POST` to a service like Datadog.
 
 ```json
 [
- {
-  "date": "2019-03-01T07:57:59.368Z",
-  "url": "https://anucreative.com/",
-  "id": "first-contentful-paint",
-  "title": "First Contentful Paint",
-  "rawValue": 1118.575,
-  "displayValue": "1.1 s",
-  "score": 1
- },
- {
-  "date": "2019-03-01T07:57:59.368Z",
-  "url": "https://anucreative.com/",
-  "id": "first-meaningful-paint",
-  "title": "First Meaningful Paint",
-  "rawValue": 1251.874,
-  "displayValue": "1.3 s",
-  "score": 1
- },
- {
-  "date": "2019-03-01T07:57:59.368Z",
-  "url": "https://anucreative.com/",
-  "id": "speed-index",
-  "title": "Speed Index",
-  "rawValue": 1655,
-  "displayValue": "1.7 s",
-  "score": 1
- }
+  {
+    "date": "2019-03-01T07:57:59.368Z",
+    "url": "https://anucreative.com/",
+    "id": "first-contentful-paint",
+    "title": "First Contentful Paint",
+    "rawValue": 1118.575,
+    "displayValue": "1.1 s",
+    "score": 1
+  },
+  {
+    "date": "2019-03-01T07:57:59.368Z",
+    "url": "https://anucreative.com/",
+    "id": "first-meaningful-paint",
+    "title": "First Meaningful Paint",
+    "rawValue": 1251.874,
+    "displayValue": "1.3 s",
+    "score": 1
+  },
+  {
+    "date": "2019-03-01T07:57:59.368Z",
+    "url": "https://anucreative.com/",
+    "id": "speed-index",
+    "title": "Speed Index",
+    "rawValue": 1655,
+    "displayValue": "1.7 s",
+    "score": 1
+  }
+  ...
+]
+```
+
+It currently returns the following metrics:
+
+```json
+[
+  'first-contentful-paint',
+  'first-meaningful-paint',
+  'speed-index',
+  'network-requests',
+  'interactive',
+  'total-byte-weight',
+  'uses-webp-images',
+  'uses-optimized-images',
+  'uses-responsive-images'
 ]
 ```
 
@@ -64,17 +81,13 @@ This returns a **Promise** with data in the form below. It's up to you how you w
 
 ### 1. Create a runner file
 
-Create a simple node file that will read the URL from 
-
 ```js
 // lighthouse-runner.js
 
 const lighthouse = require('lighthouse-tracker')
 
-// Post to your favourite data store
 const saveData = data => {
-  // Save data here to a database, Datadog etc
-  console.log(data)
+  // Post to your favourite data store
 }
 
 // Run
@@ -99,18 +112,7 @@ lighthouse
 
 ## Example (more involved)
 
-We run this against a staging site which requires authentication — we recommend [`cross-var`](https://github.com/elijahmanor/cross-var) for this e.g. assuming you have `AUTH_USER` and `AUTH_PASSWORD` in a `.env` file…
-
-```json
-// package.json
-{
-  "scripts": {
-    "lighthouse": "export $(grep -v '^#' .env | xargs) && cross-var node ./lighthouse-runner.js https://$AUTH_USER:$AUTH_PASSWORD@staging.welcometothejungle.com",
-  }
-}
-```
-
-Because we run this against different sites via CircleCI, we need to 
+### 1. Create a runner file that will read the URL from the command line arguments
 
 ```js
 // lighthouse-runner.js
@@ -150,3 +152,34 @@ lighthouse
   .catch(console.error)
 
 ```
+
+### 2. Set up the `npm` task (same as first example)
+
+```json
+// package.json
+
+{
+  "scripts": {
+    "lighthouse": "node ./lighthouse-runner.js",
+  }
+}
+```
+
+### 3. Call the `lighthouse` `npm` task from Circle with a URL
+
+```yml
+// .circleci/config.yml
+
+jobs: 
+  lighthouse:
+    steps:
+      - run: yarn lighthouse https://$AUTH_USER:$AUTH_PASSWORD@staging.welcometothejungle.com
+      - store_artifacts:
+          path: reports/lighthouse 
+```
+
+
+## Todo
+- Tests
+- Accept more Lighthouse arguments (e.g. throttle, list of metrics)
+- Multiple passes taking median results
