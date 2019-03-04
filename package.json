@@ -1,6 +1,6 @@
 {
   "name": "lighthouse-tracker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Service to run Lighthouse against a website and parse the results",
   "main": "index.js",
   "scripts": {
